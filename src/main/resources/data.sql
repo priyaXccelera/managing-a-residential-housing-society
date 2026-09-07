@@ -1,0 +1,1 @@
+-- Schema is managed by Hibernate. Runtime seed data is intentionally disabled to keep foreign keys consistent.
