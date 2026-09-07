@@ -46,8 +46,7 @@ class Poll {
   boolean cancelled = false;
   String cancellationReason;
 
-  @ManyToOne
-  Notice notice;
+  @ManyToOne Notice notice;
 
   @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL, orphanRemoval = true)
   List<PollOption> options = new ArrayList<>();
@@ -62,27 +61,25 @@ class PollOption {
   String optionText;
   long voteCount = 0;
 
-  @ManyToOne
-  Poll poll;
+  @ManyToOne Poll poll;
 }
 
 @Entity
 @Table(
     uniqueConstraints =
-        @UniqueConstraint(name = "uk_vote_resident_poll", columnNames = {"resident_id", "poll_id"}))
+        @UniqueConstraint(
+            name = "uk_vote_resident_poll",
+            columnNames = {"resident_id", "poll_id"}))
 class Vote {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   Long id;
 
-  @ManyToOne
-  Resident resident;
+  @ManyToOne Resident resident;
 
-  @ManyToOne
-  Poll poll;
+  @ManyToOne Poll poll;
 
-  @ManyToOne
-  PollOption chosenPollOption;
+  @ManyToOne PollOption chosenPollOption;
 
   LocalDateTime timestamp = LocalDateTime.now();
 }

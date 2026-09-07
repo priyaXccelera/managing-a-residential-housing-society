@@ -6,7 +6,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -76,7 +75,9 @@ public class PollService {
             : notices.findByCategoryAndExpiredFalseOrderByPostedDateDesc(category(category));
     LocalDateTime now = LocalDateTime.now();
     return page(
-        source.stream().filter(n -> n.expiryDate == null || n.expiryDate.isAfter(now)).map(this::notice),
+        source.stream()
+            .filter(n -> n.expiryDate == null || n.expiryDate.isAfter(now))
+            .map(this::notice),
         offset,
         limit);
   }
@@ -136,13 +137,16 @@ public class PollService {
     if (!now.isBefore(poll.votingEndTime)) throw badRequest("poll has ended");
     Resident resident = resident(longValue(body, "residentId"));
     if (!resident.active || resident.flat == null || !resident.flat.active) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "only active residents linked to a flat can vote");
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "only active residents linked to a flat can vote");
     }
     if (votes.existsByResidentIdAndPollId(resident.id, poll.id)) {
-      throw new ResponseStatusException(HttpStatus.CONFLICT, "resident has already voted in this poll");
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "resident has already voted in this poll");
     }
     PollOption option = option(longValue(body, "pollOptionId"));
-    if (!option.poll.id.equals(poll.id)) throw badRequest("pollOptionId does not belong to this poll");
+    if (!option.poll.id.equals(poll.id))
+      throw badRequest("pollOptionId does not belong to this poll");
     Vote vote = new Vote();
     vote.resident = resident;
     vote.poll = poll;
@@ -161,7 +165,9 @@ public class PollService {
       String computedStatus = status(poll, now);
       String computedQuorum = quorumStatus(poll, now);
       if ((status == null || status.isBlank() || computedStatus.equalsIgnoreCase(status))
-          && (quorumStatus == null || quorumStatus.isBlank() || computedQuorum.equalsIgnoreCase(quorumStatus))) {
+          && (quorumStatus == null
+              || quorumStatus.isBlank()
+              || computedQuorum.equalsIgnoreCase(quorumStatus))) {
         result.add(poll(poll));
       }
     }
@@ -176,13 +182,25 @@ public class PollService {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "poll results are not yet available");
     }
     long totalVotes = votes.findByPollId(poll.id).size();
-    long activeResidents = residents.findAll().stream().filter(r -> r.active && r.flat != null && r.flat.active).count();
+    long activeResidents =
+        residents.findAll().stream()
+            .filter(r -> r.active && r.flat != null && r.flat.active)
+            .count();
     double turnout = activeResidents == 0 ? 0 : totalVotes * 100.0 / activeResidents;
     boolean quorumMet = turnout >= poll.minimumQuorumPercentage;
     List<Map<String, Object>> optionBreakdown =
         poll.options.stream()
-            .map(o -> Map.<String, Object>of("id", o.id, "optionText", o.optionText, "voteCount", o.voteCount,
-                "percentage", totalVotes == 0 ? 0.0 : o.voteCount * 100.0 / totalVotes))
+            .map(
+                o ->
+                    Map.<String, Object>of(
+                        "id",
+                        o.id,
+                        "optionText",
+                        o.optionText,
+                        "voteCount",
+                        o.voteCount,
+                        "percentage",
+                        totalVotes == 0 ? 0.0 : o.voteCount * 100.0 / totalVotes))
             .collect(Collectors.toList());
     Map<String, Object> response = new LinkedHashMap<>();
     response.put("pollId", poll.id);
@@ -197,7 +215,11 @@ public class PollService {
       response.put("winningOptions", List.of());
     } else {
       long highest = poll.options.stream().mapToLong(o -> o.voteCount).max().orElse(0);
-      List<String> winners = poll.options.stream().filter(o -> o.voteCount == highest).map(o -> o.optionText).collect(Collectors.toList());
+      List<String> winners =
+          poll.options.stream()
+              .filter(o -> o.voteCount == highest)
+              .map(o -> o.optionText)
+              .collect(Collectors.toList());
       response.put("outcome", winners.size() > 1 ? "TIE" : "WINNER");
       response.put("winningOptions", winners);
     }
@@ -209,27 +231,37 @@ public class PollService {
     resident(residentId);
     return page(
         votes.findByResidentIdOrderByTimestampDesc(residentId).stream()
-            .map(v -> Map.<String, Object>of("pollId", v.poll.id, "timestamp", v.timestamp.toString())),
+            .map(
+                v ->
+                    Map.<String, Object>of(
+                        "pollId", v.poll.id, "timestamp", v.timestamp.toString())),
         offset,
         limit);
   }
 
   private void applyPollFields(Poll poll, Map<String, Object> body) {
-    if (body.containsKey("question") || poll.question == null) poll.question = required(body, "question");
-    if (body.containsKey("votingStartTime") || poll.votingStartTime == null) poll.votingStartTime = requiredTime(body, "votingStartTime");
-    if (body.containsKey("votingEndTime") || poll.votingEndTime == null) poll.votingEndTime = requiredTime(body, "votingEndTime");
+    if (body.containsKey("question") || poll.question == null)
+      poll.question = required(body, "question");
+    if (body.containsKey("votingStartTime") || poll.votingStartTime == null)
+      poll.votingStartTime = requiredTime(body, "votingStartTime");
+    if (body.containsKey("votingEndTime") || poll.votingEndTime == null)
+      poll.votingEndTime = requiredTime(body, "votingEndTime");
     if (body.containsKey("minimumQuorumPercentage") || poll.minimumQuorumPercentage == 0) {
       poll.minimumQuorumPercentage = doubleValue(body, "minimumQuorumPercentage");
     }
-    if (!poll.votingEndTime.isAfter(poll.votingStartTime)) throw badRequest("votingEndTime must be after votingStartTime");
-    if (poll.minimumQuorumPercentage < 0 || poll.minimumQuorumPercentage > 100) throw badRequest("minimumQuorumPercentage must be between 0 and 100");
+    if (!poll.votingEndTime.isAfter(poll.votingStartTime))
+      throw badRequest("votingEndTime must be after votingStartTime");
+    if (poll.minimumQuorumPercentage < 0 || poll.minimumQuorumPercentage > 100)
+      throw badRequest("minimumQuorumPercentage must be between 0 and 100");
   }
 
   @SuppressWarnings("unchecked")
   private List<String> optionTexts(Map<String, Object> body) {
     Object raw = body.get("options");
     if (!(raw instanceof List<?>)) throw badRequest("options must contain at least two entries");
-    List<String> texts = ((List<Object>) raw).stream().map(String::valueOf).filter(s -> !s.isBlank()).collect(Collectors.toList());
+    List<String> texts =
+        ((List<Object>) raw)
+            .stream().map(String::valueOf).filter(s -> !s.isBlank()).collect(Collectors.toList());
     if (texts.size() < 2) throw badRequest("poll must contain at least two options");
     return texts;
   }
@@ -252,8 +284,13 @@ public class PollService {
   private String quorumStatus(Poll poll, LocalDateTime now) {
     if (!"CLOSED".equals(status(poll, now))) return "PENDING";
     long count = votes.findByPollId(poll.id).size();
-    long eligible = residents.findAll().stream().filter(r -> r.active && r.flat != null && r.flat.active).count();
-    return eligible > 0 && count * 100.0 / eligible >= poll.minimumQuorumPercentage ? "MET" : "NOT_MET";
+    long eligible =
+        residents.findAll().stream()
+            .filter(r -> r.active && r.flat != null && r.flat.active)
+            .count();
+    return eligible > 0 && count * 100.0 / eligible >= poll.minimumQuorumPercentage
+        ? "MET"
+        : "NOT_MET";
   }
 
   private Map<String, Object> notice(Notice notice) {
@@ -264,7 +301,10 @@ public class PollService {
     response.put("category", notice.category.name());
     response.put("postedDate", notice.postedDate.toString());
     response.put("expiryDate", notice.expiryDate == null ? null : notice.expiryDate.toString());
-    response.put("expired", notice.expired || (notice.expiryDate != null && !notice.expiryDate.isAfter(LocalDateTime.now())));
+    response.put(
+        "expired",
+        notice.expired
+            || (notice.expiryDate != null && !notice.expiryDate.isAfter(LocalDateTime.now())));
     return response;
   }
 
@@ -278,29 +318,91 @@ public class PollService {
     response.put("noticeId", poll.notice == null ? null : poll.notice.id);
     response.put("status", status(poll, LocalDateTime.now()));
     response.put("cancelled", poll.cancelled);
-    response.put("cancellationReason", poll.cancellationReason == null ? null : poll.cancellationReason);
-    response.put("options", poll.options.stream().map(o -> Map.of("id", o.id, "optionText", o.optionText)).collect(Collectors.toList()));
+    response.put(
+        "cancellationReason", poll.cancellationReason == null ? null : poll.cancellationReason);
+    response.put(
+        "options",
+        poll.options.stream()
+            .map(o -> Map.of("id", o.id, "optionText", o.optionText))
+            .collect(Collectors.toList()));
     return response;
   }
 
-  private Map<String, Object> page(java.util.stream.Stream<Map<String, Object>> stream, int offset, int limit) {
-    if (offset < 0 || limit < 1 || limit > 100) throw badRequest("offset must be non-negative and limit must be between 1 and 100");
+  private Map<String, Object> page(
+      java.util.stream.Stream<Map<String, Object>> stream, int offset, int limit) {
+    if (offset < 0 || limit < 1 || limit > 100)
+      throw badRequest("offset must be non-negative and limit must be between 1 and 100");
     List<Map<String, Object>> all = stream.collect(Collectors.toList());
     int from = Math.min(offset, all.size());
     int to = Math.min(from + limit, all.size());
-    return Map.of("total", all.size(), "offset", offset, "limit", limit, "items", all.subList(from, to));
+    return Map.of(
+        "total", all.size(), "offset", offset, "limit", limit, "items", all.subList(from, to));
   }
 
-  private Notice noticeEntity(Long id) { return notices.findById(id).orElseThrow(() -> notFound("notice not found")); }
-  private Poll pollEntity(Long id) { return polls.findById(id).orElseThrow(() -> notFound("poll not found")); }
-  private PollOption option(Long id) { return options.findById(id).orElseThrow(() -> notFound("poll option not found")); }
-  private Resident resident(Long id) { return residents.findById(id).orElseThrow(() -> notFound("resident not found")); }
-  private String required(Map<String, Object> body, String key) { Object value = body.get(key); if (value == null || String.valueOf(value).isBlank()) throw badRequest(key + " is required"); return String.valueOf(value); }
-  private Long longValue(Map<String, Object> body, String key) { try { return Long.valueOf(required(body, key)); } catch (NumberFormatException e) { throw badRequest(key + " must be a number"); } }
-  private double doubleValue(Map<String, Object> body, String key) { try { return Double.parseDouble(required(body, key)); } catch (NumberFormatException e) { throw badRequest(key + " must be numeric"); } }
-  private LocalDateTime requiredTime(Map<String, Object> body, String key) { try { return LocalDateTime.parse(required(body, key)); } catch (RuntimeException e) { throw badRequest(key + " must be ISO-8601 local date-time"); } }
-  private LocalDateTime optionalTime(Map<String, Object> body, String key) { Object value = body.get(key); return value == null || String.valueOf(value).isBlank() ? null : requiredTime(body, key); }
-  private NoticeCategory category(String value) { try { return NoticeCategory.valueOf(value.toUpperCase()); } catch (IllegalArgumentException e) { throw badRequest("category must be GENERAL, URGENT, or EVENT"); } }
-  private ResponseStatusException badRequest(String message) { return new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
-  private ResponseStatusException notFound(String message) { return new ResponseStatusException(HttpStatus.NOT_FOUND, message); }
+  private Notice noticeEntity(Long id) {
+    return notices.findById(id).orElseThrow(() -> notFound("notice not found"));
+  }
+
+  private Poll pollEntity(Long id) {
+    return polls.findById(id).orElseThrow(() -> notFound("poll not found"));
+  }
+
+  private PollOption option(Long id) {
+    return options.findById(id).orElseThrow(() -> notFound("poll option not found"));
+  }
+
+  private Resident resident(Long id) {
+    return residents.findById(id).orElseThrow(() -> notFound("resident not found"));
+  }
+
+  private String required(Map<String, Object> body, String key) {
+    Object value = body.get(key);
+    if (value == null || String.valueOf(value).isBlank()) throw badRequest(key + " is required");
+    return String.valueOf(value);
+  }
+
+  private Long longValue(Map<String, Object> body, String key) {
+    try {
+      return Long.valueOf(required(body, key));
+    } catch (NumberFormatException e) {
+      throw badRequest(key + " must be a number");
+    }
+  }
+
+  private double doubleValue(Map<String, Object> body, String key) {
+    try {
+      return Double.parseDouble(required(body, key));
+    } catch (NumberFormatException e) {
+      throw badRequest(key + " must be numeric");
+    }
+  }
+
+  private LocalDateTime requiredTime(Map<String, Object> body, String key) {
+    try {
+      return LocalDateTime.parse(required(body, key));
+    } catch (RuntimeException e) {
+      throw badRequest(key + " must be ISO-8601 local date-time");
+    }
+  }
+
+  private LocalDateTime optionalTime(Map<String, Object> body, String key) {
+    Object value = body.get(key);
+    return value == null || String.valueOf(value).isBlank() ? null : requiredTime(body, key);
+  }
+
+  private NoticeCategory category(String value) {
+    try {
+      return NoticeCategory.valueOf(value.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      throw badRequest("category must be GENERAL, URGENT, or EVENT");
+    }
+  }
+
+  private ResponseStatusException badRequest(String message) {
+    return new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+  }
+
+  private ResponseStatusException notFound(String message) {
+    return new ResponseStatusException(HttpStatus.NOT_FOUND, message);
+  }
 }

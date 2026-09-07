@@ -28,13 +28,15 @@ public class PollController {
 
   @PostMapping("/notices")
   @Operation(summary = "Create a notice")
-  public ResponseEntity<Map<String, Object>> createNotice(@Valid @RequestBody Map<String, Object> body) {
+  public ResponseEntity<Map<String, Object>> createNotice(
+      @Valid @RequestBody Map<String, Object> body) {
     return ResponseEntity.status(HttpStatus.CREATED).body(service.createNotice(body));
   }
 
   @PutMapping("/notices/{id}")
   @Operation(summary = "Update a notice")
-  public ResponseEntity<Map<String, Object>> updateNotice(@PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
+  public ResponseEntity<Map<String, Object>> updateNotice(
+      @PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
     return ResponseEntity.ok(service.updateNotice(id, body));
   }
 
@@ -56,32 +58,35 @@ public class PollController {
   @GetMapping("/notices/expired")
   @Operation(summary = "List expired notice history")
   public ResponseEntity<Map<String, Object>> expiredNotices(
-      @RequestParam(defaultValue = "0") int offset,
-      @RequestParam(defaultValue = "20") int limit) {
+      @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "20") int limit) {
     return ResponseEntity.ok(service.expiredNotices(offset, limit));
   }
 
   @PostMapping("/polls")
   @Operation(summary = "Create a poll")
-  public ResponseEntity<Map<String, Object>> createPoll(@Valid @RequestBody Map<String, Object> body) {
+  public ResponseEntity<Map<String, Object>> createPoll(
+      @Valid @RequestBody Map<String, Object> body) {
     return ResponseEntity.status(HttpStatus.CREATED).body(service.createPoll(body));
   }
 
   @PutMapping("/polls/{id}")
   @Operation(summary = "Update a poll before voting starts")
-  public ResponseEntity<Map<String, Object>> updatePoll(@PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
+  public ResponseEntity<Map<String, Object>> updatePoll(
+      @PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
     return ResponseEntity.ok(service.updatePoll(id, body));
   }
 
   @PostMapping("/polls/{id}/cancel")
   @Operation(summary = "Cancel a poll")
-  public ResponseEntity<Map<String, Object>> cancelPoll(@PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
+  public ResponseEntity<Map<String, Object>> cancelPoll(
+      @PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
     return ResponseEntity.ok(service.cancelPoll(id, body));
   }
 
   @PostMapping("/polls/{id}/votes")
   @Operation(summary = "Cast one vote in an active poll")
-  public ResponseEntity<Map<String, Object>> vote(@PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
+  public ResponseEntity<Map<String, Object>> vote(
+      @PathVariable Long id, @Valid @RequestBody Map<String, Object> body) {
     return ResponseEntity.status(HttpStatus.CREATED).body(service.castVote(id, body));
   }
 
