@@ -30,7 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ApiKeyController {
   private final ApiKeyRepository repository;
 
-  @Value("${admin.api-key}")
+  @Value("${app.secret.admin-api-key}")
   private String configuredKey;
 
   public ApiKeyController(ApiKeyRepository repository) {
